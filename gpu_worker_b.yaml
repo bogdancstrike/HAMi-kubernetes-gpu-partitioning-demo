@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-worker-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-worker
+      instance: worker-b
+  template:
+    metadata:
+      labels:
+        app: gpu-worker
+        instance: worker-b
+    spec:
+      schedulerName: hami-scheduler
+      containers:
+      - name: gpu-worker
+        image: pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+        command: ["python3", "-u", "-c"]
+        args:
+        - |
+          import torch, time, os
+          pod = os.environ.get('POD_NAME', 'worker-b')
+          device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+          print(f'[{pod}] device={device} gpu={torch.cuda.get_device_name(0)}', flush=True)
+          elements = (2000 * 1024 * 1024) // 4
+          blob = torch.zeros(elements, dtype=torch.float32, device=device)
+          used = torch.cuda.memory_allocated() // 1024**2
+          print(f'[{pod}] VRAM allocated: {used}MB', flush=True)
+          a = torch.randn(2048, 2048, device=device, dtype=torch.float16)
+          b = torch.randn(2048, 2048, device=device, dtype=torch.float16)
+          i = 0
+          while True:
+              c = torch.matmul(a, b)
+              torch.cuda.synchronize()
+              i += 1
+              if i % 100 == 0:
+                  used = torch.cuda.memory_allocated() // 1024**2
+                  print(f'[{pod}] iter={i} vram={used}MB', flush=True)
+              time.sleep(0.05)
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          limits:
+            nvidia.com/gpu: "1"              # required trigger
+            nvidia.com/gpucores: "40"
+            nvidia.com/gpumem-percentage: "30"
