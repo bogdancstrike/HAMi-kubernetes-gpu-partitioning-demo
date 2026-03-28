@@ -28,7 +28,7 @@ Both pods run truly in parallel on different SMs. Time-slicing only occurs under
 
 ## Quick Start
 
-See **[hami-microk8s-tutorial.md](hami-microk8s-tutorial.md)** for the full step-by-step guide. Summary:
+See **[docs/hami-microk8s-tutorial.md](docs/hami-microk8s-tutorial.md)** for the full step-by-step guide. Summary:
 
 ```bash
 # 1. Enable GPU addon
@@ -53,21 +53,25 @@ microk8s helm3 install hami hami-charts/hami \
 microk8s kubectl label node <your-node-name> gpu=on
 
 # 5. Deploy workloads
-microk8s kubectl apply -f sanity_check.yaml   # verify GPU is visible
-microk8s kubectl apply -f gpu_worker_a.yaml
-microk8s kubectl apply -f gpu_worker_b.yaml
+microk8s kubectl apply -f manifests/workloads/sanity_check.yaml   # verify GPU is visible
+microk8s kubectl apply -f manifests/workloads/gpu_worker_a.yaml
+microk8s kubectl apply -f manifests/workloads/gpu_worker_b.yaml
 ```
 
 ## Files
 
-| File | Description |
-|------|-------------|
-| `sanity_check.yaml` | One-shot pod that runs `nvidia-smi` to verify GPU access |
-| `gpu_worker_a.yaml` | Light workload: 25% cores, 20% VRAM, 1024×1024 matmuls |
-| `gpu_worker_b.yaml` | Heavy workload: 40% cores, 30% VRAM, 2048×2048 matmuls |
-| `hami_service_monitoring.yaml` | Prometheus ServiceMonitors for HAMi metrics endpoints |
-| `grafana_dashboard.yaml` | Grafana ConfigMap with 10-panel GPU sharing dashboard |
-| `hami-microk8s-tutorial.md` | Full tutorial with installation, verification, and troubleshooting |
+```
+manifests/
+  workloads/
+    sanity_check.yaml        # one-shot pod — runs nvidia-smi to verify GPU access
+    gpu_worker_a.yaml        # light workload: 25% cores, 20% VRAM, 1024×1024 matmuls
+    gpu_worker_b.yaml        # heavy workload: 40% cores, 30% VRAM, 2048×2048 matmuls
+  monitoring/
+    hami_service_monitoring.yaml   # Prometheus ServiceMonitors for HAMi
+    grafana_dashboard.yaml         # Grafana ConfigMap — 10-panel GPU sharing dashboard
+docs/
+  hami-microk8s-tutorial.md  # full tutorial: install, verify, troubleshoot
+```
 
 ## Resource Annotation Rules
 
@@ -92,4 +96,4 @@ HAMi exposes Prometheus metrics on two ports:
 | vgpu-monitor (real-time per-pod) | `:31992` | `vGPU_device_memory_usage_in_bytes`, `Device_utilization_desc_of_container` |
 | scheduler allocation view | `:31993` | `vGPUCoreAllocated`, `vGPUMemoryAllocated`, `GPUDeviceSharedNum` |
 
-Apply `hami_service_monitoring.yaml` and `grafana_dashboard.yaml` to enable the Grafana dashboard.
+Apply `manifests/monitoring/hami_service_monitoring.yaml` and `manifests/monitoring/grafana_dashboard.yaml` to enable the Grafana dashboard.
