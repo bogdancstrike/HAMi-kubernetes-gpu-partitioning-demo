@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.gitignore
 
 # Python
 __pycache__/
